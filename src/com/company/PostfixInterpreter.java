@@ -121,27 +121,28 @@ public class PostfixInterpreter {
         }
     }
 
-    private int processingJump() {
+    private int processingJump() throws InterpreterErrorException {
         Value value = stack.pop();
+        if (!value.type.equals("label"))
+            failRunTime(520);
         return tableOfLabels.get(value.index).valueGoTo;
     }
 
-    private int processingJF() {
+    private int processingJF() throws InterpreterErrorException {
         Value label = stack.pop();
         Value valueBool = stack.pop();
+        if (!label.type.equals("label"))
+            failRunTime(520);
         if (valueBool.ident) {
             if (tableOfId.get(valueBool.index).value.equals("false")) {
                 return tableOfLabels.get(label.index).valueGoTo;
-            } else {
-                return nextInstr;
             }
         } else {
             if (valueBool.value.equals("false")) {
                 return tableOfLabels.get(label.index).valueGoTo;
-            } else {
-                return nextInstr;
             }
         }
+        return nextInstr;
     }
 
     private void processingColon() throws InterpreterErrorException {
@@ -157,30 +158,28 @@ public class PostfixInterpreter {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Input:");
         try {
-            while (!stack.empty()) {
-                value = stack.pop();
-                if (!value.ident)
-                    failRunTime(9);
-                switch (value.type) {
-                    case "int":
-                        type = "int";
-                        str = String.valueOf(Integer.parseInt(scanner.nextLine().trim()));
-                        break;
-                    case "real":
-                        type = "real";
-                        str = String.valueOf(Float.parseFloat(scanner.nextLine().trim()));
-                        break;
-                    case "bool":
-                        type = "real";
-                        str = scanner.nextLine().trim();
-                        if (!(str.equals("true") || str.equals("false")))
-                            failRunTime(11, type);
-                        break;
-                    default:
-                        failRunTime(10, value.type);
-                }
-                tableOfId.get(value.index).value = str;
+            value = stack.pop();
+            if (!value.ident)
+                failRunTime(9);
+            switch (value.type) {
+                case "int":
+                    type = "int";
+                    str = String.valueOf(Integer.parseInt(scanner.nextLine().trim()));
+                    break;
+                case "real":
+                    type = "real";
+                    str = String.valueOf(Float.parseFloat(scanner.nextLine().trim()));
+                    break;
+                case "bool":
+                    type = "bool";
+                    str = scanner.nextLine().trim();
+                    if (!(str.equals("true") || str.equals("false")))
+                        failRunTime(11, type);
+                    break;
+                default:
+                    failRunTime(10, value.type);
             }
+            tableOfId.get(value.index).value = str;
         } catch (NumberFormatException e) {
             failRunTime(11, type);
         }
