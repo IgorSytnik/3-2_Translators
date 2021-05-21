@@ -419,6 +419,14 @@ public class ProgramParser {
         return isArEx;
     }
 
+    /**
+     * Parses exponentiation
+     * PowOp Factor { PowOp Factor }
+     * @return
+     * true if found expression that count as exponentiation, otherwise false
+     * @throws ParserErrorException
+     * if found something unexpected
+     */
     private boolean parsePow() throws ParserErrorException {
         tabOut("parsePow():");
         boolean isPow;
@@ -679,6 +687,7 @@ public class ProgramParser {
     /**
      * Parses identifier list for read statement
      * IdentList = Ident {',' Ident}
+     * Adds Symb with token "in" and lexeme "IN" to postfixCode after each identifier in a read statement
      * @throws ParserErrorException
      * if found something unexpected
      */
@@ -710,6 +719,7 @@ public class ProgramParser {
     /**
      * Parses write statement
      * Out = write ’(’ List ’)’
+     * Adds Symb with token "out" and lexeme "OUT" to postfixCode after all identifier in a write statement
      * @throws ParserErrorException
      * if found something unexpected
      */
@@ -771,6 +781,7 @@ public class ProgramParser {
      * DoBlockIf1 = DoBlockIf
      * DoBlockIf2 = DoBlockIf
      * DoBlockIf = StatementList
+     * Adds and creates labels to the postfixCode list with operators JF and JMP
      * @throws ParserErrorException
      * if found something unexpected
      */
@@ -784,7 +795,6 @@ public class ProgramParser {
         if (!parseLogExpression()) {
             failParse(5, symb.token, symb.lexeme);
         }
-//        parseLogExpression();
         parseToken("then", "keyword");
         //m1
         //JF
@@ -827,6 +837,13 @@ public class ProgramParser {
      * IdentFor = (int | real) Ident
      * ArithmExpression1 = ArithmExpression
      * ArithmExpression2 = ArithmExpression
+     * Creates and adds labels to the postfixCode list with operators JF and JMP
+     * Creates and adds cycle identifier and assign operator to the postfixCode list before the ArithmExpression2
+     * Writes a different order of "for" statement components to the postfixCode:
+     * written:
+     *  for (int i := 0; i < 10; i + 1) {...}
+     * postfixCode:
+     *  i 0 := m1 JMP m2 : i i 1 + := m1 : i 10 < m3 JF {...}
      * @throws ParserErrorException
      * if found something unexpected
      */
@@ -857,7 +874,6 @@ public class ProgramParser {
         tableOfId.get(symb.index).setType(declarType);
         parseToken(":=", "assign_op");
         postFSymb = new Symb(symb);
-//        parseArithmeticExpression();
         depth = 0;
         depthPostfixCode = 0;
         if (!parseArithmeticExpression()) {
@@ -992,6 +1008,12 @@ public class ProgramParser {
         depthPostfixCode = 0;
     }
 
+    /**
+     * Used in parseFor()
+     * Decides whether it should add Symb to postfixCode or postfixCodeBuffered
+     * @param postFSymb
+     * An object of class Symb to add to postfixCode or postfixCodeBuffered
+     */
     private void postfixCodeAddOne(Symb postFSymb) {
         if (isBuff) {
             bufferedPostfixCodeAddOne(postFSymb);
@@ -1000,22 +1022,40 @@ public class ProgramParser {
         }
     }
 
+    /**
+     * Adds postFSymb to postfixCode list
+     * @param postFSymb
+     * An object of class Symb to add
+     */
     private void usualCodeAddOne(Symb postFSymb) {
         postfixCode.add(postFSymb);
         depthPostfixCode++;
     }
 
+    /**
+     * Adds postFSymb to postfixCodeBuffered list
+     * @param postFSymb
+     * An object of class Symb to add
+     */
     private void bufferedPostfixCodeAddOne(Symb postFSymb) {
         postfixCodeBuffered.add(postFSymb);
         depthPostfixCodeBuffered++;
     }
 
+    /**
+     * Puts objects from postfixCodeBuffered to postfixCode and clears postfixCodeBuffered
+     */
     private void putBuff() {
         postfixCode.addAll(postfixCodeBuffered);
         postfixCodeBuffered.clear();
         depthPostfixCodeBuffered = 0;
     }
-    
+
+    /**
+     * Creates a label and adds it to tableOfLabels list
+     * @return
+     * Created label as a Symb
+     */
     private Symb createLabel() {
         int index = tableOfLabels.size();
         Lable lable = new Lable(index, "m" + index, -1);
@@ -1023,6 +1063,13 @@ public class ProgramParser {
         return new Symb(symb.lineNumber, lable.name, "label", index);
     }
 
+    /**
+     * Label value is the index in postfixCode to which program should go
+     * Sets the label value to be postfixCode.size() - 1
+     * Adds label m and ":" to postfixCode
+     * @param m
+     * Label to work with
+     */
     private void setValueLabel(Symb m) {
         tableOfLabels.get(m.index).valueGoTo = postfixCode.size() - 1;
         postfixCodeAddOne(m);
