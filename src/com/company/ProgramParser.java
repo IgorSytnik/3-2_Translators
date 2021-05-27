@@ -471,19 +471,19 @@ public class ProgramParser {
         symb = getSymb();
 
         while ((symb.token.equals("mult_op") || symb.token.equals("pow_op")) && isTerm) {
-            if (symb.token.equals("pow_op")) {
-                postFSymb = new Symb(symb);
-                printSymb();
-                isTerm = parsePow();
-                postfixCodeAddOne(postFSymb);
-                symb = getSymb();
-                continue;
-            }
             postFSymb = new Symb(symb);
             printSymb();
             increment();
             isTerm = parseFactor();
             symb = getSymb();
+            if (symb.token.equals("pow_op")) {
+                Symb postFSymbPow;
+                postFSymbPow = new Symb(symb);
+                printSymb();
+                isTerm = parsePow();
+                postfixCodeAddOne(postFSymbPow);
+                symb = getSymb();
+            }
             postfixCodeAddOne(postFSymb);
         }
 
